@@ -8,7 +8,7 @@ custom_map3x3 = [
     'FFF',
     'FHG',
 ]
-env = gym.make("FrozenLake-v0", desc=custom_map3x3)
+env = gym.make("FrozenLake-v1", desc=custom_map3x3)
 # TODO: Uncomment the following line to try the default map (4x4):
 #env = gym.make("FrozenLake-v0")
 
@@ -50,17 +50,33 @@ def value_policy(policy):
     P = trans_matrix_for_policy(policy)
     # TODO: calculate and return v
     # (P, r and gamma already given)
-    return None
+    if (np.linalg.det(np.eye(P.shape[0]) - gamma * P) == 0):
+        return np.zeros(P.shape)
+    V_pi = np.linalg.inv(np.eye(P.shape[0]) - gamma * P) @ r
+    return V_pi
 
 
 def bruteforce_policies():
     terms = terminals()
     optimalpolicies = []
 
-    policy = np.zeros(n_states, dtype=np.int)  # in the discrete case a policy is just an array with action = policy[state]
+    policy = np.zeros(n_states)  # in the discrete case a policy is just an array with action = policy[state]
     optimalvalue = np.zeros(n_states)
-    
+
     # TODO: implement code that tries all possible policies, calculate the values using def value_policy. Find the optimal values and the optimal policies to answer the exercise questions.
+    from itertools import product
+    possibleactions = [ list(range(n_actions)) if s not in terms else [0] for s in range(n_states)]
+    print("possibleactions: ", possibleactions)
+    possible_policies = list(product(*possibleactions)) # allpolicies = [ele for ele in product(range(n_actions), repeat=n_states)]
+    print("possible_policies number: ", possible_policies.__sizeof__())
+
+    for policy in possible_policies:
+        # print("policy: ", policy)
+        value = value_policy(policy)
+        # print("value: ", value)
+        if np.all( value >= optimalvalue):
+            optimalvalue = value
+            optimalpolicies = [policy]
 
     print ("Optimal value function:")
     print(optimalvalue)
@@ -75,12 +91,13 @@ def bruteforce_policies():
 def main():
     # print the environment
     print("current environment: ")
+    env.reset()
     env.render()
     print("")
 
     # Here a policy is just an array with the action for a state as element
-    policy_left = np.zeros(n_states, dtype=np.int)  # 0 for all states
-    policy_right = np.ones(n_states, dtype=np.int) * 2  # 2 for all states
+    policy_left = np.zeros(n_states)  # 0 for all states
+    policy_right = np.ones(n_states) * 2  # 2 for all states
 
     # Value functions:
     print("Value function for policy_left (always going left):")
@@ -92,17 +109,17 @@ def main():
 
 
     # This code can be used to "rollout" a policy in the environment:
-    """
     print ("rollout policy:")
     maxiter = 100
-    state = env.reset()
+    state = env.reset()[0]
     for i in range(maxiter):
-        new_state, reward, done, info = env.step(optimalpolicies[0][state])
+        action = optimalpolicies[0][state]
+        new_state, reward, terminated, truncated, info = env.step(action)
         env.render()
         state=new_state
-        if done:
+        if terminated or truncated:
             print ("Finished episode")
-            break"""
+            break
 
 
 if __name__ == "__main__":
